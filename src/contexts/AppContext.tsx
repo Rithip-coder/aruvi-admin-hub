@@ -87,12 +87,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (loadedCategories) setCategories(JSON.parse(loadedCategories));
     if (loadedHistory) setHistory(JSON.parse(loadedHistory));
     
-    // Initialize with empty orders for each kudil if not present
+    // Initialize with sample orders for testing if not present
     if (!loadedOrders) {
-      const initialOrders: Record<string, OrderItem[]> = {};
-      for (let i = 1; i <= 8; i++) {
-        initialOrders[`kudil${i}`] = [];
-      }
+      const initialOrders: Record<string, OrderItem[]> = {
+        kudil1: [
+          { productId: '3', productName: 'Biryani', quantity: 2, price: 220 },
+          { productId: '7', productName: 'Mango Lassi', quantity: 2, price: 80 },
+        ],
+        kudil2: [
+          { productId: '1', productName: 'Chicken 65', quantity: 1, price: 180 },
+          { productId: '4', productName: 'Butter Chicken', quantity: 1, price: 280 },
+          { productId: '6', productName: 'Fresh Lime Soda', quantity: 3, price: 60 },
+        ],
+        kudil3: [
+          { productId: '5', productName: 'Masala Dosa', quantity: 3, price: 120 },
+          { productId: '6', productName: 'Fresh Lime Soda', quantity: 3, price: 60 },
+        ],
+        kudil4: [],
+        kudil5: [
+          { productId: '2', productName: 'Paneer Tikka', quantity: 1, price: 160 },
+          { productId: '8', productName: 'Gulab Jamun', quantity: 2, price: 70 },
+        ],
+        kudil6: [],
+        kudil7: [],
+        kudil8: [
+          { productId: '3', productName: 'Biryani', quantity: 1, price: 220 },
+        ],
+      };
       setOrders(initialOrders);
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(initialOrders));
     }
