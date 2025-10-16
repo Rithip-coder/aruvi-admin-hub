@@ -5,10 +5,11 @@ import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { getKudilOrderCount, clearKudilOrder } = useApp();
+  const { orders, getKudilOrderCount, clearKudilOrder } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -44,11 +45,13 @@ export default function Dashboard() {
     const kudilNumber = i + 1;
     const kudilId = `kudil${kudilNumber}`;
     const orderCount = getKudilOrderCount(kudilId);
+    const kudilOrders = orders[kudilId] || [];
     
     return {
       number: kudilNumber,
       id: kudilId,
       orderCount,
+      items: kudilOrders,
     };
   });
 
@@ -69,10 +72,10 @@ export default function Dashboard() {
         {kudils.map((kudil) => (
           <Card
             key={kudil.id}
-            className="p-6 hover:shadow-lg transition-all border-2"
+            className="p-6 hover:shadow-lg transition-all border-2 flex flex-col"
             style={{ boxShadow: 'var(--shadow-card)' }}
           >
-            <div className="space-y-4">
+            <div className="space-y-4 flex flex-col h-full">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-foreground">
                   Kudil {kudil.number}
@@ -83,6 +86,29 @@ export default function Dashboard() {
                   </span>
                   <span className="text-sm text-muted-foreground">items</span>
                 </div>
+              </div>
+
+              {/* Product List */}
+              <div className="flex-1 min-h-0">
+                {kudil.items.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    No orders yet
+                  </div>
+                ) : (
+                  <ScrollArea className="h-32">
+                    <div className="space-y-2 pr-4">
+                      {kudil.items.map((item) => (
+                        <div
+                          key={item.productId}
+                          className="flex justify-between items-center text-sm bg-muted/50 px-3 py-2 rounded"
+                        >
+                          <span className="font-medium">{item.productName}</span>
+                          <span className="text-primary font-semibold">x{item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
