@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import BillScreen from "./pages/BillScreen";
 import Products from "./pages/Products";
 import Categories from "./pages/Categories";
+import Waiters from "./pages/Waiters";
+import Analytics from "./pages/Analytics";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +29,8 @@ const App = () => (
               <Route path="/bill/:kudilNumber" element={<BillScreen />} />
               <Route path="/products" element={<Products />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/waiters" element={<Waiters />} />
+              <Route path="/analytics" element={<Analytics />} />
               <Route path="/history" element={<History />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
