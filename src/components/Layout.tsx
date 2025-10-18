@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, FileText, Package, FolderTree, History, Users, BarChart3 } from 'lucide-react';
+import { Home, FileText, Package, FolderTree, History, Users, BarChart3, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -12,6 +12,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     { path: '/waiters', icon: Users, label: 'Waiters' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/history', icon: History, label: 'History' },
+    { path: '/settings', icon: Building2, label: 'Settings' },
   ];
 
   return (

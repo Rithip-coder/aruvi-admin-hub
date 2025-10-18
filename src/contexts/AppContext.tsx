@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { productsApi, categoriesApi, ordersApi, billingApi, historyApi, waitersApi } from '@/services/api';
+import { toast } from '@/hooks/use-toast';
 
 export interface Product {
   id: string;
@@ -35,6 +37,8 @@ export interface HistoryEntry {
 
 export interface Waiter {
   id: string;
+  username?: string;
+  password?: string;
   name: string;
   phone: string;
   email: string;
@@ -63,24 +67,26 @@ interface AppContextType {
   history: HistoryEntry[];
   waiters: Waiter[];
   kudilCompletions: Record<string, boolean>;
-  addOrderItem: (kudilId: string, item: OrderItem) => void;
-  removeOrderItem: (kudilId: string, productId: string) => void;
-  updateOrderItemQuantity: (kudilId: string, productId: string, quantity: number) => void;
-  clearKudilOrder: (kudilId: string) => void;
-  printBill: (kudilId: string, waiterId?: string) => void;
-  addProduct: (product: Omit<Product, 'id'>) => void;
-  updateProduct: (id: string, product: Omit<Product, 'id'>) => void;
-  deleteProduct: (id: string) => void;
-  addCategory: (category: Omit<Category, 'id'>) => void;
-  updateCategory: (id: string, category: Omit<Category, 'id'>) => void;
-  deleteCategory: (id: string) => void;
-  addWaiter: (waiter: Omit<Waiter, 'id' | 'ordersCompleted' | 'issues'>) => void;
-  updateWaiter: (id: string, waiter: Partial<Waiter>) => void;
-  deleteWaiter: (id: string) => void;
-  addWaiterIssue: (waiterId: string, description: string) => void;
-  toggleKudilCompletion: (kudilId: string) => void;
+  loading: boolean;
+  addOrderItem: (kudilId: string, item: OrderItem) => Promise<void>;
+  removeOrderItem: (kudilId: string, productId: string) => Promise<void>;
+  updateOrderItemQuantity: (kudilId: string, productId: string, quantity: number) => Promise<void>;
+  clearKudilOrder: (kudilId: string) => Promise<void>;
+  printBill: (kudilId: string, waiterId?: string) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
+  updateProduct: (id: string, product: Omit<Product, 'id'>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Omit<Category, 'id'>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  addWaiter: (waiter: Omit<Waiter, 'id' | 'ordersCompleted' | 'issues'>) => Promise<void>;
+  updateWaiter: (id: string, waiter: Partial<Waiter>) => Promise<void>;
+  deleteWaiter: (id: string) => Promise<void>;
+  addWaiterIssue: (waiterId: string, description: string) => Promise<void>;
+  toggleKudilCompletion: (kudilId: string) => Promise<void>;
   getKudilOrderCount: (kudilId: string) => number;
   getKudilTotal: (kudilId: string) => number;
+  refreshData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -93,15 +99,6 @@ export const useApp = () => {
   return context;
 };
 
-const STORAGE_KEYS = {
-  ORDERS: 'aruvi_orders',
-  PRODUCTS: 'aruvi_products',
-  CATEGORIES: 'aruvi_categories',
-  HISTORY: 'aruvi_history',
-  WAITERS: 'aruvi_waiters',
-  COMPLETIONS: 'aruvi_completions',
-};
-
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [orders, setOrders] = useState<Record<string, OrderItem[]>>({});
   const [products, setProducts] = useState<Product[]>([]);
@@ -109,239 +106,289 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [kudilCompletions, setKudilCompletions] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage on mount
+  // Load initial data from API
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [productsData, categoriesData, ordersData, historyData, waitersData] = await Promise.all([
+        productsApi.getAll().catch(() => []),
+        categoriesApi.getAll().catch(() => []),
+        ordersApi.getAll().catch(() => []),
+        historyApi.getAll().catch(() => []),
+        waitersApi.getAll().catch(() => []),
+      ]);
+
+      setProducts(productsData);
+      setCategories(categoriesData);
+      setHistory(historyData);
+      setWaiters(waitersData);
+
+      // Convert orders array to Record format
+      const ordersMap: Record<string, OrderItem[]> = {};
+      ordersData.forEach((order: any) => {
+        ordersMap[order.kudilId] = order.items || [];
+      });
+      setOrders(ordersMap);
+
+    } catch (error) {
+      toast({
+        title: "Error loading data",
+        description: error instanceof Error ? error.message : "Failed to load data from server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadedOrders = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    const loadedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    const loadedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    const loadedHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
-    const loadedWaiters = localStorage.getItem(STORAGE_KEYS.WAITERS);
-    const loadedCompletions = localStorage.getItem(STORAGE_KEYS.COMPLETIONS);
-
-    if (loadedOrders) setOrders(JSON.parse(loadedOrders));
-    if (loadedProducts) setProducts(JSON.parse(loadedProducts));
-    if (loadedCategories) setCategories(JSON.parse(loadedCategories));
-    if (loadedHistory) setHistory(JSON.parse(loadedHistory));
-    if (loadedWaiters) setWaiters(JSON.parse(loadedWaiters));
-    if (loadedCompletions) setKudilCompletions(JSON.parse(loadedCompletions));
-    
-    // Initialize with sample orders for testing if not present
-    if (!loadedOrders) {
-      const initialOrders: Record<string, OrderItem[]> = {
-        kudil1: [
-          { productId: '3', productName: 'Biryani', quantity: 2, price: 220 },
-          { productId: '7', productName: 'Mango Lassi', quantity: 2, price: 80 },
-        ],
-        kudil2: [
-          { productId: '1', productName: 'Chicken 65', quantity: 1, price: 180 },
-          { productId: '4', productName: 'Butter Chicken', quantity: 1, price: 280 },
-          { productId: '6', productName: 'Fresh Lime Soda', quantity: 3, price: 60 },
-        ],
-        kudil3: [
-          { productId: '5', productName: 'Masala Dosa', quantity: 3, price: 120 },
-          { productId: '6', productName: 'Fresh Lime Soda', quantity: 3, price: 60 },
-        ],
-        kudil4: [],
-        kudil5: [
-          { productId: '2', productName: 'Paneer Tikka', quantity: 1, price: 160 },
-          { productId: '8', productName: 'Gulab Jamun', quantity: 2, price: 70 },
-        ],
-        kudil6: [],
-        kudil7: [],
-        kudil8: [
-          { productId: '3', productName: 'Biryani', quantity: 1, price: 220 },
-        ],
-      };
-      setOrders(initialOrders);
-      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(initialOrders));
-    }
-
-    // Add sample data if empty
-    if (!loadedCategories) {
-      const sampleCategories: Category[] = [
-        { id: '1', name: 'Starters' },
-        { id: '2', name: 'Main Course' },
-        { id: '3', name: 'Beverages' },
-        { id: '4', name: 'Desserts' },
-      ];
-      setCategories(sampleCategories);
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(sampleCategories));
-    }
-
-    if (!loadedProducts) {
-      const sampleProducts: Product[] = [
-        { id: '1', name: 'Chicken 65', price: 180, categoryId: '1' },
-        { id: '2', name: 'Paneer Tikka', price: 160, categoryId: '1' },
-        { id: '3', name: 'Biryani', price: 220, categoryId: '2' },
-        { id: '4', name: 'Butter Chicken', price: 280, categoryId: '2' },
-        { id: '5', name: 'Masala Dosa', price: 120, categoryId: '2' },
-        { id: '6', name: 'Fresh Lime Soda', price: 60, categoryId: '3' },
-        { id: '7', name: 'Mango Lassi', price: 80, categoryId: '3' },
-        { id: '8', name: 'Gulab Jamun', price: 70, categoryId: '4' },
-      ];
-      setProducts(sampleProducts);
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(sampleProducts));
-    }
-
-    if (!loadedWaiters) {
-      const sampleWaiters: Waiter[] = [
-        { 
-          id: '1', 
-          name: 'Ravi Kumar', 
-          phone: '9876543210', 
-          email: 'ravi@aruvi.com', 
-          joinDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
-          status: 'active',
-          ordersCompleted: 45,
-          issues: []
-        },
-        { 
-          id: '2', 
-          name: 'Priya Sharma', 
-          phone: '9876543211', 
-          email: 'priya@aruvi.com', 
-          joinDate: Date.now() - 15 * 24 * 60 * 60 * 1000,
-          status: 'active',
-          ordersCompleted: 32,
-          issues: []
-        },
-      ];
-      setWaiters(sampleWaiters);
-      localStorage.setItem(STORAGE_KEYS.WAITERS, JSON.stringify(sampleWaiters));
-    }
+    loadData();
   }, []);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-  }, [orders]);
+  const refreshData = async () => {
+    await loadData();
+  };
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
-  }, [history]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.WAITERS, JSON.stringify(waiters));
-  }, [waiters]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.COMPLETIONS, JSON.stringify(kudilCompletions));
-  }, [kudilCompletions]);
-
-  const addOrderItem = (kudilId: string, item: OrderItem) => {
-    setOrders(prev => {
-      const kudilOrders = prev[kudilId] || [];
-      const existingItemIndex = kudilOrders.findIndex(i => i.productId === item.productId);
+  const addOrderItem = async (kudilId: string, item: OrderItem) => {
+    try {
+      await ordersApi.addItem(kudilId, item);
       
-      if (existingItemIndex > -1) {
-        const updated = [...kudilOrders];
-        updated[existingItemIndex].quantity += item.quantity;
-        return { ...prev, [kudilId]: updated };
-      } else {
-        return { ...prev, [kudilId]: [...kudilOrders, item] };
-      }
-    });
+      setOrders(prev => {
+        const kudilOrders = prev[kudilId] || [];
+        const existingItemIndex = kudilOrders.findIndex(i => i.productId === item.productId);
+        
+        if (existingItemIndex > -1) {
+          const updated = [...kudilOrders];
+          updated[existingItemIndex].quantity += item.quantity;
+          return { ...prev, [kudilId]: updated };
+        } else {
+          return { ...prev, [kudilId]: [...kudilOrders, item] };
+        }
+      });
+      
+      toast({
+        title: "Item added",
+        description: "Item successfully added to order",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add item",
+        variant: "destructive",
+      });
+    }
   };
 
-  const removeOrderItem = (kudilId: string, productId: string) => {
-    setOrders(prev => ({
-      ...prev,
-      [kudilId]: (prev[kudilId] || []).filter(item => item.productId !== productId),
-    }));
+  const removeOrderItem = async (kudilId: string, productId: string) => {
+    try {
+      await ordersApi.removeItem(kudilId, productId);
+      
+      setOrders(prev => ({
+        ...prev,
+        [kudilId]: (prev[kudilId] || []).filter(item => item.productId !== productId),
+      }));
+      
+      toast({
+        title: "Item removed",
+        description: "Item successfully removed from order",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove item",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateOrderItemQuantity = (kudilId: string, productId: string, quantity: number) => {
+  const updateOrderItemQuantity = async (kudilId: string, productId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeOrderItem(kudilId, productId);
+      await removeOrderItem(kudilId, productId);
       return;
     }
     
-    setOrders(prev => {
-      const kudilOrders = prev[kudilId] || [];
-      return {
-        ...prev,
-        [kudilId]: kudilOrders.map(item =>
-          item.productId === productId ? { ...item, quantity } : item
-        ),
-      };
-    });
+    try {
+      await ordersApi.updateItemQuantity(kudilId, productId, quantity);
+      
+      setOrders(prev => {
+        const kudilOrders = prev[kudilId] || [];
+        return {
+          ...prev,
+          [kudilId]: kudilOrders.map(item =>
+            item.productId === productId ? { ...item, quantity } : item
+          ),
+        };
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update quantity",
+        variant: "destructive",
+      });
+    }
   };
 
-  const clearKudilOrder = (kudilId: string) => {
-    setOrders(prev => ({ ...prev, [kudilId]: [] }));
+  const clearKudilOrder = async (kudilId: string) => {
+    try {
+      await ordersApi.clearOrder(kudilId);
+      setOrders(prev => ({ ...prev, [kudilId]: [] }));
+      
+      toast({
+        title: "Order cleared",
+        description: "All items removed from order",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to clear order",
+        variant: "destructive",
+      });
+    }
   };
 
-  const printBill = (kudilId: string, waiterId?: string) => {
+  const printBill = async (kudilId: string, waiterId?: string) => {
     const kudilOrders = orders[kudilId] || [];
     if (kudilOrders.length === 0) return;
 
     const total = kudilOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
     
-    const historyEntry: HistoryEntry = {
-      id: `${Date.now()}`,
-      kudilId,
-      items: kudilOrders,
-      total,
-      timestamp: Date.now(),
-      waiterId,
-    };
+    try {
+      const bill = await billingApi.print({
+        kudilId,
+        waiterId,
+        items: kudilOrders,
+        total,
+      });
 
-    setHistory(prev => [historyEntry, ...prev]);
-    
-    // Increment waiter's order count
-    if (waiterId) {
-      setWaiters(prev => prev.map(w => 
-        w.id === waiterId ? { ...w, ordersCompleted: w.ordersCompleted + 1 } : w
-      ));
+      // Refresh history
+      const updatedHistory = await historyApi.getAll();
+      setHistory(updatedHistory);
+      
+      // Clear the order
+      setOrders(prev => ({ ...prev, [kudilId]: [] }));
+      setKudilCompletions(prev => ({ ...prev, [kudilId]: false }));
+      
+      toast({
+        title: "Bill printed",
+        description: "Bill has been saved to history",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to print bill",
+        variant: "destructive",
+      });
     }
-    
-    clearKudilOrder(kudilId);
-    setKudilCompletions(prev => ({ ...prev, [kudilId]: false }));
   };
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString(),
-    };
-    setProducts(prev => [...prev, newProduct]);
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      const newProduct = await productsApi.create(product);
+      setProducts(prev => [...prev, newProduct]);
+      
+      toast({
+        title: "Product added",
+        description: "Product successfully created",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add product",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateProduct = (id: string, product: Omit<Product, 'id'>) => {
-    setProducts(prev =>
-      prev.map(p => (p.id === id ? { ...product, id } : p))
-    );
+  const updateProduct = async (id: string, product: Omit<Product, 'id'>) => {
+    try {
+      const updated = await productsApi.update(id, product);
+      setProducts(prev => prev.map(p => (p.id === id ? updated : p)));
+      
+      toast({
+        title: "Product updated",
+        description: "Product successfully updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update product",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+  const deleteProduct = async (id: string) => {
+    try {
+      await productsApi.delete(id);
+      setProducts(prev => prev.filter(p => p.id !== id));
+      
+      toast({
+        title: "Product deleted",
+        description: "Product successfully deleted",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete product",
+        variant: "destructive",
+      });
+    }
   };
 
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    const newCategory: Category = {
-      ...category,
-      id: Date.now().toString(),
-    };
-    setCategories(prev => [...prev, newCategory]);
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    try {
+      const newCategory = await categoriesApi.create(category);
+      setCategories(prev => [...prev, newCategory]);
+      
+      toast({
+        title: "Category added",
+        description: "Category successfully created",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add category",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateCategory = (id: string, category: Omit<Category, 'id'>) => {
-    setCategories(prev =>
-      prev.map(c => (c.id === id ? { ...category, id } : c))
-    );
+  const updateCategory = async (id: string, category: Omit<Category, 'id'>) => {
+    try {
+      const updated = await categoriesApi.update(id, category);
+      setCategories(prev => prev.map(c => (c.id === id ? updated : c)));
+      
+      toast({
+        title: "Category updated",
+        description: "Category successfully updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update category",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
+  const deleteCategory = async (id: string) => {
+    try {
+      await categoriesApi.delete(id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+      
+      toast({
+        title: "Category deleted",
+        description: "Category successfully deleted",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete category",
+        variant: "destructive",
+      });
+    }
   };
 
   const getKudilOrderCount = (kudilId: string) => {
@@ -354,39 +401,102 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return kudilOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
-  const addWaiter = (waiter: Omit<Waiter, 'id' | 'ordersCompleted' | 'issues'>) => {
-    const newWaiter: Waiter = {
-      ...waiter,
-      id: Date.now().toString(),
-      ordersCompleted: 0,
-      issues: [],
-    };
-    setWaiters(prev => [...prev, newWaiter]);
+  const addWaiter = async (waiter: Omit<Waiter, 'id' | 'ordersCompleted' | 'issues'>) => {
+    try {
+      const newWaiter = await waitersApi.create({
+        username: waiter.username || '',
+        password: waiter.password || '',
+        name: waiter.name,
+        phone: waiter.phone,
+        email: waiter.email,
+        status: waiter.status,
+      });
+      setWaiters(prev => [...prev, newWaiter]);
+      
+      toast({
+        title: "Waiter added",
+        description: "Waiter successfully created",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add waiter",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateWaiter = (id: string, waiter: Partial<Waiter>) => {
-    setWaiters(prev => prev.map(w => (w.id === id ? { ...w, ...waiter } : w)));
+  const updateWaiter = async (id: string, waiter: Partial<Waiter>) => {
+    try {
+      const updated = await waitersApi.update(id, waiter);
+      setWaiters(prev => prev.map(w => (w.id === id ? updated : w)));
+      
+      toast({
+        title: "Waiter updated",
+        description: "Waiter successfully updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update waiter",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteWaiter = (id: string) => {
-    setWaiters(prev => prev.filter(w => w.id !== id));
+  const deleteWaiter = async (id: string) => {
+    try {
+      await waitersApi.delete(id);
+      setWaiters(prev => prev.filter(w => w.id !== id));
+      
+      toast({
+        title: "Waiter deleted",
+        description: "Waiter successfully deleted",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete waiter",
+        variant: "destructive",
+      });
+    }
   };
 
-  const addWaiterIssue = (waiterId: string, description: string) => {
-    const issue: WaiterIssue = {
-      id: Date.now().toString(),
-      date: Date.now(),
-      description,
-    };
-    setWaiters(prev =>
-      prev.map(w =>
-        w.id === waiterId ? { ...w, issues: [...w.issues, issue] } : w
-      )
-    );
+  const addWaiterIssue = async (waiterId: string, description: string) => {
+    try {
+      const issue = await waitersApi.addIssue(waiterId, description);
+      setWaiters(prev =>
+        prev.map(w =>
+          w.id === waiterId ? { ...w, issues: [...w.issues, issue] } : w
+        )
+      );
+      
+      toast({
+        title: "Issue added",
+        description: "Issue successfully recorded",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add issue",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleKudilCompletion = (kudilId: string) => {
-    setKudilCompletions(prev => ({ ...prev, [kudilId]: !prev[kudilId] }));
+  const toggleKudilCompletion = async (kudilId: string) => {
+    const newStatus = !kudilCompletions[kudilId];
+    
+    try {
+      await ordersApi.markComplete(kudilId, newStatus);
+      setKudilCompletions(prev => ({ ...prev, [kudilId]: newStatus }));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update completion status",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -398,6 +508,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         history,
         waiters,
         kudilCompletions,
+        loading,
         addOrderItem,
         removeOrderItem,
         updateOrderItemQuantity,
@@ -416,6 +527,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         toggleKudilCompletion,
         getKudilOrderCount,
         getKudilTotal,
+        refreshData,
       }}
     >
       {children}
