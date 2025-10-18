@@ -1,9 +1,19 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, FileText, Package, FolderTree, History, Users, BarChart3, Building2 } from 'lucide-react';
+import { Home, FileText, Package, FolderTree, History, Users, BarChart3, Building2, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useApp } from '@/contexts/AppContext';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const { logout } = useApp();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard' },
@@ -24,7 +34,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               <span className="ml-2 text-lg md:text-xl font-bold text-foreground">Aruvi Admin</span>
             </div>
-            <div className="hidden md:flex space-x-2 lg:space-x-4">
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -44,9 +54,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </Link>
                 );
               })}
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
             {/* Mobile nav */}
-            <div className="flex md:hidden overflow-x-auto gap-2">
+            <div className="flex md:hidden items-center overflow-x-auto gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -65,6 +79,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                   </Link>
                 );
               })}
+              <Button variant="ghost" size="icon" onClick={handleLogout}>
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>

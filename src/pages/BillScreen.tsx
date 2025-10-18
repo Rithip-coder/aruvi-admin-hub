@@ -81,12 +81,133 @@ export default function BillScreen() {
       return;
     }
 
+    // Create thermal print content
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          @media print {
+            @page { 
+              size: 80mm auto; 
+              margin: 0; 
+            }
+            body { 
+              margin: 0; 
+              padding: 10px;
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              width: 80mm;
+            }
+          }
+          body {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 300px;
+            margin: 0 auto;
+          }
+          .header {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+          }
+          .header h2 {
+            margin: 5px 0;
+            font-size: 16px;
+            font-weight: bold;
+          }
+          .item-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+          }
+          .item-name {
+            flex: 1;
+          }
+          .item-qty {
+            width: 30px;
+            text-align: center;
+          }
+          .item-price {
+            width: 60px;
+            text-align: right;
+          }
+          .total-section {
+            border-top: 2px dashed #000;
+            margin-top: 10px;
+            padding-top: 10px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 5px 0;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 15px;
+            border-top: 2px dashed #000;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>ARUVI RESTAURANT</h2>
+          <p>Kudil ${kudilNumber}</p>
+          <p>${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div class="items">
+          ${currentOrder.map(item => `
+            <div class="item-row">
+              <span class="item-name">${item.productName}</span>
+              <span class="item-qty">x${item.quantity}</span>
+              <span class="item-price">₹${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="total-section">
+          <div class="total-row">
+            <span>TOTAL:</span>
+            <span>₹${total.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Thank You!</p>
+          <p>Visit Again</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open print window
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      };
+    }
+
+    // Save to history via API
     printBill(kudilId);
     toast({
       title: "Bill Printed",
       description: "Bill has been sent to printer and saved to history",
     });
-    navigate('/');
+    
+    // Navigate after a short delay to ensure print dialog opens
+    setTimeout(() => navigate('/'), 500);
   };
 
   return (

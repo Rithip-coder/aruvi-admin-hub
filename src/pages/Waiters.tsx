@@ -19,6 +19,8 @@ export default function Waiters() {
   const [selectedWaiter, setSelectedWaiter] = useState<Waiter | null>(null);
   
   const [formData, setFormData] = useState({
+    username: '',
+    password: '',
     name: '',
     phone: '',
     email: '',
@@ -28,13 +30,13 @@ export default function Waiters() {
   const [issueDescription, setIssueDescription] = useState('');
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', email: '', status: 'active' });
+    setFormData({ username: '', password: '', name: '', phone: '', email: '', status: 'active' });
     setIssueDescription('');
   };
 
   const handleAdd = () => {
-    if (!formData.name || !formData.phone) {
-      toast.error('Name and phone are required');
+    if (!formData.name || !formData.phone || !formData.username || !formData.password) {
+      toast.error('Name, phone, username and password are required');
       return;
     }
     addWaiter({ ...formData, joinDate: Date.now() });
@@ -69,6 +71,8 @@ export default function Waiters() {
   const openEditDialog = (waiter: Waiter) => {
     setSelectedWaiter(waiter);
     setFormData({
+      username: waiter.username || '',
+      password: waiter.password || '',
       name: waiter.name,
       phone: waiter.phone,
       email: waiter.email,
@@ -109,6 +113,23 @@ export default function Waiters() {
               <DialogTitle>Add New Waiter</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div>
+                <Label>Username *</Label>
+                <Input
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Enter password"
+                />
+              </div>
               <div>
                 <Label>Name *</Label>
                 <Input
@@ -238,6 +259,23 @@ export default function Waiters() {
             <DialogTitle>Edit Waiter</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div>
+              <Label>Username *</Label>
+              <Input
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="Enter username"
+              />
+            </div>
+            <div>
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter password"
+              />
+            </div>
             <div>
               <Label>Name *</Label>
               <Input

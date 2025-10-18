@@ -68,6 +68,9 @@ interface AppContextType {
   waiters: Waiter[];
   kudilCompletions: Record<string, boolean>;
   loading: boolean;
+  isAuthenticated: boolean;
+  login: () => void;
+  logout: () => void;
   addOrderItem: (kudilId: string, item: OrderItem) => Promise<void>;
   removeOrderItem: (kudilId: string, productId: string) => Promise<void>;
   updateOrderItemQuantity: (kudilId: string, productId: string, quantity: number) => Promise<void>;
@@ -107,6 +110,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [kudilCompletions, setKudilCompletions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+
+  const login = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+  };
 
   // Load initial data from API
   const loadData = async () => {
@@ -509,6 +525,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         waiters,
         kudilCompletions,
         loading,
+        isAuthenticated,
+        login,
+        logout,
         addOrderItem,
         removeOrderItem,
         updateOrderItemQuantity,
