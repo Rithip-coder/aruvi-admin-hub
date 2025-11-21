@@ -74,7 +74,7 @@ export default function History() {
         <div className="space-y-4">
           {filteredHistory.map((entry) => {
             const isExpanded = expandedBills.has(entry.id);
-            const kudilNumber = entry.kudilId.replace('kudil', '');
+            const tableNumber = entry.tableId.replace('table', '');
             
             return (
               <Card key={entry.id} className="overflow-hidden">
@@ -85,7 +85,7 @@ export default function History() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
                       <div>
-                        <h3 className="font-semibold text-lg">Kudil {kudilNumber}</h3>
+                        <h3 className="font-semibold text-lg">Table {tableNumber}</h3>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(entry.timestamp)} at {formatTime(entry.timestamp)}
                         </p>
