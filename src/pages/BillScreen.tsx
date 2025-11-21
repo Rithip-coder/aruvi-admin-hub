@@ -155,7 +155,7 @@ export default function BillScreen() {
       </head>
       <body>
         <div class="header">
-          <h2>ARUVI RESTAURANT</h2>
+          <h2>DEEPIKA RESTAURANT</h2>
           <p>Kudil ${kudilNumber}</p>
           <p>${new Date().toLocaleString()}</p>
         </div>
@@ -226,7 +226,7 @@ export default function BillScreen() {
         {/* Receipt Style Bill */}
         <Card className="p-6 mb-6 bg-card">
           <div className="border-b-2 border-dashed border-border pb-4 mb-4">
-            <h2 className="text-xl font-bold text-center">ARUVI RESTAURANT</h2>
+            <h2 className="text-xl font-bold text-center">DEEPIKA RESTAURANT</h2>
             <p className="text-center text-sm text-muted-foreground">Kudil {kudilNumber}</p>
           </div>
 

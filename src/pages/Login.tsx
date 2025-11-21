@@ -20,7 +20,7 @@ export default function Login() {
     setLoading(true);
 
     // Hardcoded credentials
-    if (username === 'AruviAdmin' && password === '9994989459') {
+    if (username === 'Deepika' && password === 'Deepike@123') {
       login();
       toast.success('Login successful');
       navigate('/');
@@ -38,7 +38,7 @@ export default function Login() {
           <div className="flex items-center justify-center mb-4">
             <LogIn className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl text-center">Aruvi Admin Login</CardTitle>
+          <CardTitle className="text-2xl text-center">Deepika Admin Login</CardTitle>
           <CardDescription className="text-center">
             Enter your credentials to access the admin panel
           </CardDescription>

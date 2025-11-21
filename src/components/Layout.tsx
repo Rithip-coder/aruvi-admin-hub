@@ -32,7 +32,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <FileText className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              <span className="ml-2 text-lg md:text-xl font-bold text-foreground">Aruvi Admin</span>
+              <span className="ml-2 text-lg md:text-xl font-bold text-foreground">Deepika Admin</span>
             </div>
             <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {navItems.map((item) => {

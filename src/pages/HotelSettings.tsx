@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { hotelsApi } from "@/services/api";
 import { Plus, Edit, Trash2, Building2 } from "lucide-react";
 
 interface Hotel {
@@ -17,6 +16,8 @@ interface Hotel {
   shopDescription: string;
   noOfTables: number;
 }
+
+const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const HotelSettings = () => {
   const [hotels, setHotels] = useState<Hotel[]>([]);
@@ -36,15 +37,23 @@ const HotelSettings = () => {
     loadHotels();
   }, []);
 
-  const loadHotels = async () => {
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem('hotels', JSON.stringify(hotels));
+    }
+  }, [hotels, loading]);
+
+  const loadHotels = () => {
     try {
       setLoading(true);
-      const data = await hotelsApi.getAll();
-      setHotels(data);
+      const storedHotels = localStorage.getItem('hotels');
+      if (storedHotels) {
+        setHotels(JSON.parse(storedHotels));
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load hotels",
+        description: "Failed to load hotels from storage",
         variant: "destructive",
       });
     } finally {
@@ -79,29 +88,19 @@ const HotelSettings = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!deleteHotelId) return;
 
-    try {
-      await hotelsApi.delete(deleteHotelId);
-      setHotels(prev => prev.filter(h => h.id !== deleteHotelId));
-      toast({
-        title: "Hotel deleted",
-        description: "Hotel has been deleted successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete hotel",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleteDialogOpen(false);
-      setDeleteHotelId(null);
-    }
+    setHotels(prev => prev.filter(h => h.id !== deleteHotelId));
+    toast({
+      title: "Hotel deleted",
+      description: "Hotel has been deleted successfully",
+    });
+    setIsDeleteDialogOpen(false);
+    setDeleteHotelId(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.shopName || !formData.shopAddress || formData.noOfTables <= 0) {
@@ -113,30 +112,24 @@ const HotelSettings = () => {
       return;
     }
 
-    try {
-      if (selectedHotel) {
-        const updated = await hotelsApi.update(selectedHotel.id, formData);
-        setHotels(prev => prev.map(h => h.id === selectedHotel.id ? updated : h));
-        toast({
-          title: "Hotel updated",
-          description: "Hotel details have been updated successfully",
-        });
-      } else {
-        const newHotel = await hotelsApi.create(formData);
-        setHotels(prev => [...prev, newHotel]);
-        toast({
-          title: "Hotel added",
-          description: "New hotel has been added successfully",
-        });
-      }
-      setIsDialogOpen(false);
-    } catch (error) {
+    if (selectedHotel) {
+      setHotels(prev => prev.map(h => h.id === selectedHotel.id ? { ...formData, id: selectedHotel.id } : h));
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save hotel",
-        variant: "destructive",
+        title: "Hotel updated",
+        description: "Hotel details have been updated successfully",
+      });
+    } else {
+      const newHotel: Hotel = {
+        ...formData,
+        id: generateId(),
+      };
+      setHotels(prev => [...prev, newHotel]);
+      toast({
+        title: "Hotel added",
+        description: "New hotel has been added successfully",
       });
     }
+    setIsDialogOpen(false);
   };
 
   if (loading) {
