@@ -18,16 +18,16 @@ export default function Dashboard() {
     orders, 
     products, 
     categories, 
-    kudilCompletions,
-    getKudilOrderCount, 
-    getKudilTotal,
+    tableCompletions,
+    getTableOrderCount, 
+    getTableTotal,
     addOrderItem,
     removeOrderItem,
     updateOrderItemQuantity,
-    toggleKudilCompletion,
+    toggleTableCompletion,
   } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [editingKudil, setEditingKudil] = useState<string | null>(null);
+  const [editingTable, setEditingTable] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
@@ -44,19 +44,19 @@ export default function Dashboard() {
     toast.success('Dashboard refreshed');
   };
 
-  const handleGoToBill = (kudilId: string) => {
-    const kudilNumber = kudilId.replace('kudil', '');
-    navigate(`/bill/${kudilNumber}`);
+  const handleGoToBill = (tableId: string) => {
+    const tableNumber = tableId.replace('table', '');
+    navigate(`/bill/${tableNumber}`);
   };
 
   const handleAddItem = () => {
-    if (!editingKudil || !selectedProduct) {
+    if (!editingTable || !selectedProduct) {
       toast.error('Please select a product');
       return;
     }
     const product = products.find(p => p.id === selectedProduct);
     if (product) {
-      addOrderItem(editingKudil, {
+      addOrderItem(editingTable, {
         productId: product.id,
         productName: product.name,
         quantity,
@@ -68,25 +68,25 @@ export default function Dashboard() {
     }
   };
 
-  const handleCompleteToggle = (kudilId: string) => {
-    toggleKudilCompletion(kudilId);
-    toast.success(kudilCompletions[kudilId] ? 'Marked as incomplete' : 'Marked as complete');
+  const handleCompleteToggle = (tableId: string) => {
+    toggleTableCompletion(tableId);
+    toast.success(tableCompletions[tableId] ? 'Marked as incomplete' : 'Marked as complete');
   };
 
   const filteredProducts = selectedCategory
     ? products.filter(p => p.categoryId === selectedCategory)
     : products;
 
-  const kudils = Array.from({ length: 8 }, (_, i) => {
-    const kudilNumber = i + 1;
-    const kudilId = `kudil${kudilNumber}`;
-    const kudilOrders = orders[kudilId] || [];
+  const tables = Array.from({ length: 8 }, (_, i) => {
+    const tableNumber = i + 1;
+    const tableId = `table${tableNumber}`;
+    const tableOrders = orders[tableId] || [];
     
     return {
-      name: `Kudil ${kudilNumber}`,
-      number: kudilNumber,
-      id: kudilId,
-      orders: kudilOrders,
+      name: `Table ${tableNumber}`,
+      number: tableNumber,
+      id: tableId,
+      orders: tableOrders,
     };
   });
 
@@ -95,7 +95,7 @@ export default function Dashboard() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Monitor all Kudil orders</p>
+          <p className="text-muted-foreground mt-1">Monitor all table orders</p>
         </div>
         <Button onClick={handleRefresh} variant="outline" size="icon">
           <RefreshCw className="h-4 w-4" />
@@ -103,14 +103,14 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {kudils.map((kudil) => {
-          const itemCount = getKudilOrderCount(kudil.id);
-          const total = getKudilTotal(kudil.id);
-          const isCompleted = kudilCompletions[kudil.id];
+        {tables.map((table) => {
+          const itemCount = getTableOrderCount(table.id);
+          const total = getTableTotal(table.id);
+          const isCompleted = tableCompletions[table.id];
 
           return (
             <Card 
-              key={kudil.id} 
+              key={table.id} 
               className={cn(
                 "overflow-hidden hover:shadow-lg transition-all",
                 isCompleted && "border-2 border-primary bg-primary/5"
@@ -118,7 +118,7 @@ export default function Dashboard() {
             >
               <div className="p-4 md:p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl md:text-2xl font-bold text-foreground">{kudil.name}</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">{table.name}</h2>
                   <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -126,7 +126,7 @@ export default function Dashboard() {
                           size="icon" 
                           variant="ghost"
                           onClick={() => {
-                            setEditingKudil(kudil.id);
+                            setEditingTable(table.id);
                             setSelectedCategory('');
                             setSelectedProduct('');
                             setQuantity(1);
@@ -137,18 +137,18 @@ export default function Dashboard() {
                       </DialogTrigger>
                       <DialogContent className="max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Manage Orders - {kudil.name}</DialogTitle>
+                          <DialogTitle>Manage Orders - {table.name}</DialogTitle>
                         </DialogHeader>
                         <ScrollArea className="max-h-[60vh]">
                           <div className="space-y-4 py-4 px-1">
                             {/* Current Items */}
                             <div>
                               <Label className="text-sm font-semibold mb-2 block">Current Items</Label>
-                              {kudil.orders.length === 0 ? (
+                              {table.orders.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No items</p>
                               ) : (
                                 <div className="space-y-2">
-                                  {kudil.orders.map((item, idx) => (
+                                  {table.orders.map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-2 p-2 border rounded">
                                       <span className="flex-1 text-sm">{item.productName}</span>
                                       <div className="flex items-center gap-1">
@@ -156,7 +156,7 @@ export default function Dashboard() {
                                           size="icon"
                                           variant="ghost"
                                           className="h-6 w-6"
-                                          onClick={() => updateOrderItemQuantity(kudil.id, item.productId, item.quantity - 1)}
+                                          onClick={() => updateOrderItemQuantity(table.id, item.productId, item.quantity - 1)}
                                         >
                                           <Minus className="h-3 w-3" />
                                         </Button>
@@ -165,7 +165,7 @@ export default function Dashboard() {
                                           size="icon"
                                           variant="ghost"
                                           className="h-6 w-6"
-                                          onClick={() => updateOrderItemQuantity(kudil.id, item.productId, item.quantity + 1)}
+                                          onClick={() => updateOrderItemQuantity(table.id, item.productId, item.quantity + 1)}
                                         >
                                           <Plus className="h-3 w-3" />
                                         </Button>
@@ -174,7 +174,7 @@ export default function Dashboard() {
                                           variant="ghost"
                                           className="h-6 w-6 ml-2"
                                           onClick={() => {
-                                            removeOrderItem(kudil.id, item.productId);
+                                            removeOrderItem(table.id, item.productId);
                                             toast.success('Item removed');
                                           }}
                                         >
@@ -245,11 +245,11 @@ export default function Dashboard() {
                 <ScrollArea className="h-32 mb-4">
                   <div className="pr-4">
                     <p className="text-sm text-muted-foreground mb-2">Current Orders:</p>
-                    {kudil.orders.length === 0 ? (
+                    {table.orders.length === 0 ? (
                       <p className="text-muted-foreground text-sm">No orders yet</p>
                     ) : (
                       <div className="space-y-1">
-                        {kudil.orders.map((item, idx) => (
+                        {table.orders.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <span>{item.productName}</span>
                             <span className="font-medium">x{item.quantity}</span>
@@ -274,13 +274,13 @@ export default function Dashboard() {
                   <Button 
                     variant={isCompleted ? "default" : "outline"}
                     className="w-full"
-                    onClick={() => handleCompleteToggle(kudil.id)}
+                    onClick={() => handleCompleteToggle(table.id)}
                   >
                     {isCompleted ? '✓ Completed' : 'Waiter Complete'}
                   </Button>
                   <Button 
                     className="w-full"
-                    onClick={() => handleGoToBill(kudil.id)}
+                    onClick={() => handleGoToBill(table.id)}
                   >
                     Go to Bill
                   </Button>

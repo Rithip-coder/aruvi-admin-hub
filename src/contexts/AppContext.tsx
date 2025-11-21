@@ -21,13 +21,13 @@ export interface OrderItem {
 }
 
 export interface Order {
-  kudilId: string;
+  tableId: string;
   items: OrderItem[];
 }
 
 export interface HistoryEntry {
   id: string;
-  kudilId: string;
+  tableId: string;
   items: OrderItem[];
   total: number;
   timestamp: number;
@@ -53,8 +53,8 @@ export interface WaiterIssue {
   description: string;
 }
 
-export interface KudilCompletion {
-  kudilId: string;
+export interface TableCompletion {
+  tableId: string;
   completed: boolean;
   timestamp: number;
 }
@@ -65,16 +65,16 @@ interface AppContextType {
   categories: Category[];
   history: HistoryEntry[];
   waiters: Waiter[];
-  kudilCompletions: Record<string, boolean>;
+  tableCompletions: Record<string, boolean>;
   loading: boolean;
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
-  addOrderItem: (kudilId: string, item: OrderItem) => void;
-  removeOrderItem: (kudilId: string, productId: string) => void;
-  updateOrderItemQuantity: (kudilId: string, productId: string, quantity: number) => void;
-  clearKudilOrder: (kudilId: string) => void;
-  printBill: (kudilId: string, waiterId?: string) => void;
+  addOrderItem: (tableId: string, item: OrderItem) => void;
+  removeOrderItem: (tableId: string, productId: string) => void;
+  updateOrderItemQuantity: (tableId: string, productId: string, quantity: number) => void;
+  clearTableOrder: (tableId: string) => void;
+  printBill: (tableId: string, waiterId?: string) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Omit<Product, 'id'>) => void;
   deleteProduct: (id: string) => void;
@@ -85,9 +85,9 @@ interface AppContextType {
   updateWaiter: (id: string, waiter: Partial<Waiter>) => void;
   deleteWaiter: (id: string) => void;
   addWaiterIssue: (waiterId: string, description: string) => void;
-  toggleKudilCompletion: (kudilId: string) => void;
-  getKudilOrderCount: (kudilId: string) => number;
-  getKudilTotal: (kudilId: string) => number;
+  toggleTableCompletion: (tableId: string) => void;
+  getTableOrderCount: (tableId: string) => number;
+  getTableTotal: (tableId: string) => number;
   refreshData: () => void;
 }
 
@@ -109,7 +109,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
-  const [kudilCompletions, setKudilCompletions] = useState<Record<string, boolean>>({});
+  const [tableCompletions, setTableCompletions] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
@@ -135,14 +135,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const storedOrders = localStorage.getItem('orders');
       const storedHistory = localStorage.getItem('history');
       const storedWaiters = localStorage.getItem('waiters');
-      const storedCompletions = localStorage.getItem('kudilCompletions');
+      const storedCompletions = localStorage.getItem('tableCompletions');
 
       if (storedProducts) setProducts(JSON.parse(storedProducts));
       if (storedCategories) setCategories(JSON.parse(storedCategories));
       if (storedOrders) setOrders(JSON.parse(storedOrders));
       if (storedHistory) setHistory(JSON.parse(storedHistory));
       if (storedWaiters) setWaiters(JSON.parse(storedWaiters));
-      if (storedCompletions) setKudilCompletions(JSON.parse(storedCompletions));
+      if (storedCompletions) setTableCompletions(JSON.parse(storedCompletions));
     } catch (error) {
       toast({
         title: "Error loading data",
@@ -191,25 +191,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem('kudilCompletions', JSON.stringify(kudilCompletions));
+      localStorage.setItem('tableCompletions', JSON.stringify(tableCompletions));
     }
-  }, [kudilCompletions, loading]);
+  }, [tableCompletions, loading]);
 
   const refreshData = () => {
     loadData();
   };
 
-  const addOrderItem = (kudilId: string, item: OrderItem) => {
+  const addOrderItem = (tableId: string, item: OrderItem) => {
     setOrders(prev => {
-      const kudilOrders = prev[kudilId] || [];
-      const existingItemIndex = kudilOrders.findIndex(i => i.productId === item.productId);
+      const tableOrders = prev[tableId] || [];
+      const existingItemIndex = tableOrders.findIndex(i => i.productId === item.productId);
       
       if (existingItemIndex > -1) {
-        const updated = [...kudilOrders];
+        const updated = [...tableOrders];
         updated[existingItemIndex].quantity += item.quantity;
-        return { ...prev, [kudilId]: updated };
+        return { ...prev, [tableId]: updated };
       } else {
-        return { ...prev, [kudilId]: [...kudilOrders, item] };
+        return { ...prev, [tableId]: [...tableOrders, item] };
       }
     });
     
@@ -219,10 +219,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const removeOrderItem = (kudilId: string, productId: string) => {
+  const removeOrderItem = (tableId: string, productId: string) => {
     setOrders(prev => ({
       ...prev,
-      [kudilId]: (prev[kudilId] || []).filter(item => item.productId !== productId),
+      [tableId]: (prev[tableId] || []).filter(item => item.productId !== productId),
     }));
     
     toast({
@@ -231,25 +231,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const updateOrderItemQuantity = (kudilId: string, productId: string, quantity: number) => {
+  const updateOrderItemQuantity = (tableId: string, productId: string, quantity: number) => {
     if (quantity <= 0) {
-      removeOrderItem(kudilId, productId);
+      removeOrderItem(tableId, productId);
       return;
     }
     
     setOrders(prev => {
-      const kudilOrders = prev[kudilId] || [];
+      const tableOrders = prev[tableId] || [];
       return {
         ...prev,
-        [kudilId]: kudilOrders.map(item =>
+        [tableId]: tableOrders.map(item =>
           item.productId === productId ? { ...item, quantity } : item
         ),
       };
     });
   };
 
-  const clearKudilOrder = (kudilId: string) => {
-    setOrders(prev => ({ ...prev, [kudilId]: [] }));
+  const clearTableOrder = (tableId: string) => {
+    setOrders(prev => ({ ...prev, [tableId]: [] }));
     
     toast({
       title: "Order cleared",
@@ -257,24 +257,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const printBill = (kudilId: string, waiterId?: string) => {
-    const kudilOrders = orders[kudilId] || [];
-    if (kudilOrders.length === 0) return;
+  const printBill = (tableId: string, waiterId?: string) => {
+    const tableOrders = orders[tableId] || [];
+    if (tableOrders.length === 0) return;
 
-    const total = kudilOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = tableOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
     
     const newBill: HistoryEntry = {
       id: generateId(),
-      kudilId,
+      tableId,
       waiterId,
-      items: kudilOrders,
+      items: tableOrders,
       total,
       timestamp: Date.now(),
     };
 
     setHistory(prev => [newBill, ...prev]);
-    setOrders(prev => ({ ...prev, [kudilId]: [] }));
-    setKudilCompletions(prev => ({ ...prev, [kudilId]: false }));
+    setOrders(prev => ({ ...prev, [tableId]: [] }));
+    setTableCompletions(prev => ({ ...prev, [tableId]: false }));
     
     toast({
       title: "Bill printed",
@@ -344,14 +344,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const getKudilOrderCount = (kudilId: string) => {
-    const kudilOrders = orders[kudilId] || [];
-    return kudilOrders.reduce((sum, item) => sum + item.quantity, 0);
+  const getTableOrderCount = (tableId: string) => {
+    const tableOrders = orders[tableId] || [];
+    return tableOrders.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const getKudilTotal = (kudilId: string) => {
-    const kudilOrders = orders[kudilId] || [];
-    return kudilOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const getTableTotal = (tableId: string) => {
+    const tableOrders = orders[tableId] || [];
+    return tableOrders.reduce((sum, item) => sum + item.price * item.quantity, 0);
   };
 
   const addWaiter = (waiter: Omit<Waiter, 'id' | 'ordersCompleted' | 'issues'>) => {
@@ -407,8 +407,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const toggleKudilCompletion = (kudilId: string) => {
-    setKudilCompletions(prev => ({ ...prev, [kudilId]: !prev[kudilId] }));
+  const toggleTableCompletion = (tableId: string) => {
+    setTableCompletions(prev => ({ ...prev, [tableId]: !prev[tableId] }));
   };
 
   return (
@@ -419,7 +419,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         categories,
         history,
         waiters,
-        kudilCompletions,
+        tableCompletions,
         loading,
         isAuthenticated,
         login,
@@ -427,7 +427,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         addOrderItem,
         removeOrderItem,
         updateOrderItemQuantity,
-        clearKudilOrder,
+        clearTableOrder,
         printBill,
         addProduct,
         updateProduct,
@@ -439,9 +439,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateWaiter,
         deleteWaiter,
         addWaiterIssue,
-        toggleKudilCompletion,
-        getKudilOrderCount,
-        getKudilTotal,
+        toggleTableCompletion,
+        getTableOrderCount,
+        getTableTotal,
         refreshData,
       }}
     >

@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 
 export default function BillScreen() {
-  const { kudilNumber } = useParams<{ kudilNumber: string }>();
+  const { tableNumber } = useParams<{ tableNumber: string }>();
   const navigate = useNavigate();
   const {
     orders,
@@ -25,16 +25,16 @@ export default function BillScreen() {
     removeOrderItem,
     updateOrderItemQuantity,
     printBill,
-    getKudilTotal,
+    getTableTotal,
   } = useApp();
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('1');
 
-  const kudilId = `kudil${kudilNumber}`;
-  const currentOrder = orders[kudilId] || [];
-  const total = getKudilTotal(kudilId);
+  const tableId = `table${tableNumber}`;
+  const currentOrder = orders[tableId] || [];
+  const total = getTableTotal(tableId);
 
   const filteredProducts = selectedCategory
     ? products.filter(p => p.categoryId === selectedCategory)
@@ -53,7 +53,7 @@ export default function BillScreen() {
     const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
 
-    addOrderItem(kudilId, {
+    addOrderItem(tableId, {
       productId: product.id,
       productName: product.name,
       quantity: parseInt(quantity),
@@ -156,7 +156,7 @@ export default function BillScreen() {
       <body>
         <div class="header">
           <h2>DEEPIKA RESTAURANT</h2>
-          <p>Kudil ${kudilNumber}</p>
+          <p>Table ${tableNumber}</p>
           <p>${new Date().toLocaleString()}</p>
         </div>
         
@@ -200,7 +200,7 @@ export default function BillScreen() {
     }
 
     // Save to history via API
-    printBill(kudilId);
+    printBill(tableId);
     toast({
       title: "Bill Printed",
       description: "Bill has been sent to printer and saved to history",
@@ -218,8 +218,8 @@ export default function BillScreen() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Kudil {kudilNumber} - Bill</h1>
-            <p className="text-muted-foreground mt-1">Manage billing for this Kudil</p>
+            <h1 className="text-3xl font-bold text-foreground">Table {tableNumber} - Bill</h1>
+            <p className="text-muted-foreground mt-1">Manage billing for this table</p>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ export default function BillScreen() {
         <Card className="p-6 mb-6 bg-card">
           <div className="border-b-2 border-dashed border-border pb-4 mb-4">
             <h2 className="text-xl font-bold text-center">DEEPIKA RESTAURANT</h2>
-            <p className="text-center text-sm text-muted-foreground">Kudil {kudilNumber}</p>
+            <p className="text-center text-sm text-muted-foreground">Table {tableNumber}</p>
           </div>
 
           {currentOrder.length === 0 ? (
@@ -253,7 +253,7 @@ export default function BillScreen() {
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
-                        updateOrderItemQuantity(kudilId, item.productId, parseInt(e.target.value) || 0)
+                        updateOrderItemQuantity(tableId, item.productId, parseInt(e.target.value) || 0)
                       }
                       className="w-16 text-center"
                     />
@@ -266,7 +266,7 @@ export default function BillScreen() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeOrderItem(kudilId, item.productId)}
+                      onClick={() => removeOrderItem(tableId, item.productId)}
                     >
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
